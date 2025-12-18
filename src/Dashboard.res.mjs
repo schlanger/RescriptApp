@@ -4,10 +4,15 @@ import * as React from "react";
 import * as Js_dict from "@rescript/runtime/lib/es6/Js_dict.js";
 import * as Js_json from "@rescript/runtime/lib/es6/Js_json.js";
 import * as Belt_Option from "@rescript/runtime/lib/es6/Belt_Option.js";
+import * as Stdlib_Array from "@rescript/runtime/lib/es6/Stdlib_Array.js";
+import * as Stdlib_Float from "@rescript/runtime/lib/es6/Stdlib_Float.js";
 import * as JsxRuntime from "react/jsx-runtime";
+import BitcoinPng from "./assets/image/bitcoin.png";
 
-async function fetchCrypto(id) {
-  let url = "https://api.coinlore.net/api/ticker/?id=" + id.toString();
+let bitcoinImg = BitcoinPng;
+
+async function fetchCrypto(ids) {
+  let url = "https://api.coinlore.net/api/ticker/?id=" + ids.map(prim => prim.trim()).join(",");
   let res = await fetch(url, {});
   let result = await res.json();
   console.log(JSON.stringify(result));
@@ -22,35 +27,37 @@ function Dashboard(props) {
   React.useEffect(() => {
     let getData = async () => {
       try {
-        let json = await fetchCrypto(90.0);
-        let data = Belt_Option.getExn(Js_json.decodeObject(json));
-        let getPrice = coin => Belt_Option.getWithDefault(Belt_Option.flatMap(Belt_Option.flatMap(Belt_Option.flatMap(Js_dict.get(data, coin), Js_json.decodeObject), obj => Js_dict.get(obj, "usd")), Js_json.decodeNumber), 0.0);
-        let cryptoList = [
-          {
-            id: "bitcoin",
-            name: "Bitcoin",
-            symbol: "BTC",
-            image: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",
-            price: getPrice("bitcoin")
-          },
-          {
-            id: "ethereum",
-            name: "Ethereum",
-            symbol: "ETH",
-            image: "https://assets.coingecko.com/coins/images/279/large/ethereum.png",
-            price: getPrice("ethereum")
-          },
-          {
-            id: "cardano",
-            name: "Cardano",
-            symbol: "ADA",
-            image: "https://assets.coingecko.com/coins/images/975/large/cardano.png",
-            price: getPrice("cardano")
-          }
-        ];
-        setCryptos(param => cryptoList);
+        let json = await fetchCrypto([
+          "90",
+          "80",
+          "257"
+        ]);
+        let dataArrayOpt = Js_json.decodeArray(json);
+        if (dataArrayOpt !== undefined) {
+          let cryptoList = Stdlib_Array.filterMap(dataArrayOpt, item => {
+            let objOpt = Js_json.decodeObject(item);
+            if (objOpt === undefined) {
+              return;
+            }
+            let id = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(objOpt, "id"), Js_json.decodeString), "");
+            let name = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(objOpt, "name"), Js_json.decodeString), "");
+            let symbol = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(objOpt, "symbol"), Js_json.decodeString), "");
+            let price = Belt_Option.getWithDefault(Belt_Option.flatMap(Belt_Option.flatMap(Js_dict.get(objOpt, "price_usd"), Js_json.decodeString), Stdlib_Float.fromString), 0.0);
+            return {
+              id: id,
+              name: name,
+              symbol: symbol,
+              image: bitcoinImg,
+              price: price
+            };
+          });
+          setCryptos(param => cryptoList);
+          return setLoading(param => false);
+        }
+        console.log("Erreur: pas un array");
         return setLoading(param => false);
       } catch (exn) {
+        console.log("Erreur try/catch");
         return setLoading(param => false);
       }
     };
@@ -111,7 +118,8 @@ function Dashboard(props) {
 let make = Dashboard;
 
 export {
+  bitcoinImg,
   fetchCrypto,
   make,
 }
-/* react Not a pure module */
+/* bitcoinImg Not a pure module */
