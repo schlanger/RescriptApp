@@ -6,8 +6,8 @@ import * as Js_json from "@rescript/runtime/lib/es6/Js_json.js";
 import * as Belt_Option from "@rescript/runtime/lib/es6/Belt_Option.js";
 import * as JsxRuntime from "react/jsx-runtime";
 
-async function fetchCrypto(coins) {
-  let url = "https://api.coingecko.com/api/v3/simple/price?ids=" + coins + "&vs_currencies=usd";
+async function fetchCrypto(id) {
+  let url = "https://api.coinlore.net/api/ticker/?id=" + id.toString();
   let res = await fetch(url, {});
   let result = await res.json();
   console.log(JSON.stringify(result));
@@ -22,7 +22,7 @@ function Dashboard(props) {
   React.useEffect(() => {
     let getData = async () => {
       try {
-        let json = await fetchCrypto("bitcoin,ethereum,cardano");
+        let json = await fetchCrypto(90.0);
         let data = Belt_Option.getExn(Js_json.decodeObject(json));
         let getPrice = coin => Belt_Option.getWithDefault(Belt_Option.flatMap(Belt_Option.flatMap(Belt_Option.flatMap(Js_dict.get(data, coin), Js_json.decodeObject), obj => Js_dict.get(obj, "usd")), Js_json.decodeNumber), 0.0);
         let cryptoList = [
