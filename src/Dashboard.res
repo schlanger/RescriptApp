@@ -1,3 +1,8 @@
+
+@module("./assets/image/bitcoin.png")
+external bitcoinImg: string = "default"
+
+
 /* =========================
    Type représentant une crypto
    ========================= */
@@ -10,13 +15,12 @@ type crypto = {
 }
 
 /* =========================
-   Fonction d'appel API CoinGecko avec async/await
+   Fonction d'appel API Coinlore
    ========================= */
-let fetchCrypto = async (~id: float) => {
+let fetchCrypto = async (~ids: array<string>) => {
   let url =
-    "https://api.coinlore.net/api/ticker/?id=" ++ id->Float.toString
-
-  let res = await Fetch.fetch(url,{})
+    "https://api.coinlore.net/api/ticker/?id=" ++ ids->Array.map(String.trim)->Array.joinWith(",")
+  let res = await Fetch.fetch(url, {})
   let result = await Fetch.Response.json(res)
   Js.Json.stringifyAny(result)->Js.log
   result
@@ -41,59 +45,47 @@ let make = () => {
   React.useEffect(() => {
     let getData = async () => {
       try {
-        let json = await fetchCrypto(~id=90.0)
+        let json = await fetchCrypto(~ids=["90", "80", "257"])
+        let dataArrayOpt = json->Js.Json.decodeArray
         
-        /* On s'assure que le JSON est bien un objet */
-        let data =
-          json
-          ->Js.Json.decodeObject
-          ->Belt.Option.getExn
+        switch dataArrayOpt {
+        | Some(dataArray) =>
+          let cryptoList: array<crypto> = 
+            dataArray
+            ->Array.filterMap(item => {
+              let objOpt = item->Js.Json.decodeObject
+              switch objOpt {
+              | Some(obj) =>
+                let id = obj->Js.Dict.get("id")->Belt.Option.flatMap(Js.Json.decodeString)->Belt.Option.getWithDefault("")
+                let name = obj->Js.Dict.get("name")->Belt.Option.flatMap(Js.Json.decodeString)->Belt.Option.getWithDefault("")
+                let symbol = obj->Js.Dict.get("symbol")->Belt.Option.flatMap(Js.Json.decodeString)->Belt.Option.getWithDefault("")
+                let price = obj->Js.Dict.get("price_usd")->Belt.Option.flatMap(Js.Json.decodeString)->Belt.Option.flatMap(Float.fromString)->Belt.Option.getWithDefault(0.0)
+                
+                Some({
+                  id,
+                  name,
+                  symbol,
+                  image: bitcoinImg,
+                  price,
+                })
+              | None => None
+              }
+            })
 
-        /* Fonction utilitaire pour extraire le prix */
-        let getPrice = coin =>
-          data
-          ->Js.Dict.get(coin)
-          ->Belt.Option.flatMap(Js.Json.decodeObject)
-          ->Belt.Option.flatMap(obj => obj->Js.Dict.get("usd"))
-          ->Belt.Option.flatMap(Js.Json.decodeNumber)
-          ->Belt.Option.getWithDefault(0.0)
-
-        /* Création de la liste typée de cryptos */
-        let cryptoList: array<crypto> = [
-          {
-            id: "bitcoin",
-            name: "Bitcoin",
-            symbol: "BTC",
-            image:
-              "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",
-            price: getPrice("bitcoin"),
-          },
-          {
-            id: "ethereum",
-            name: "Ethereum",
-            symbol: "ETH",
-            image:
-              "https://assets.coingecko.com/coins/images/279/large/ethereum.png",
-            price: getPrice("ethereum"),
-          },
-          {
-            id: "cardano",
-            name: "Cardano",
-            symbol: "ADA",
-            image:
-              "https://assets.coingecko.com/coins/images/975/large/cardano.png",
-            price: getPrice("cardano"),
-          },
-        ]
-
-        /* Mise à jour du state */
-        setCryptos(_ => cryptoList)
-        setLoading(_ => false)
+          setCryptos(_ => cryptoList)
+          setLoading(_ => false)
+        | None =>
+          Js.log("Erreur: pas un array")
+          setLoading(_ => false)
+        }
       } catch {
-      | _ => setLoading(_ => false)
+      | _ => 
+        Js.log("Erreur try/catch")
+        setLoading(_ => false)
       }
     }
-    let _ = getData()
+    
+    let _ = getData()->ignore
     None
   }, [])
 
