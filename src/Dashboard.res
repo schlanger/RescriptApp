@@ -12,11 +12,9 @@ type crypto = {
 /* =========================
    Fonction d'appel API CoinGecko avec async/await
    ========================= */
-let fetchCrypto = async (~coins: string) => {
+let fetchCrypto = async (~id: float) => {
   let url =
-    "https://api.coingecko.com/api/v3/simple/price?ids=" ++
-    coins ++
-    "&vs_currencies=usd"
+    "https://api.coinlore.net/api/ticker/?id=" ++ id->Float.toString
 
   let res = await Fetch.fetch(url,{})
   let result = await Fetch.Response.json(res)
@@ -43,7 +41,7 @@ let make = () => {
   React.useEffect(() => {
     let getData = async () => {
       try {
-        let json = await fetchCrypto(~coins="bitcoin,ethereum,cardano")
+        let json = await fetchCrypto(~id=90.0)
         
         /* On s'assure que le JSON est bien un objet */
         let data =
@@ -95,7 +93,6 @@ let make = () => {
       | _ => setLoading(_ => false)
       }
     }
-    
     let _ = getData()
     None
   }, [])
