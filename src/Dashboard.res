@@ -2,6 +2,12 @@
 @module("./assets/image/bitcoin.png")
 external bitcoinImg: string = "default"
 
+@module("./assets/image/cardano.png")
+external cardanoImg: string = "default"
+
+@module("./assets/image/ethereum.png")
+external ethereumImg: string = "default"
+
 
 /* =========================
    Type représentant une crypto
@@ -26,6 +32,16 @@ let fetchCrypto = async (~ids: array<string>) => {
   result
 }
 
+let fetchallCrypto = async () => {
+  let url = "https://api.coinlore.net/api/tickers/"
+  let res = await Fetch.fetch(url, {})
+  let result = await Fetch.Response.json(res)
+  Js.Json.stringifyAny(result)->Js.log
+  result
+}
+
+fetchallCrypto()->ignore
+
 open React
 
 /* =========================
@@ -45,13 +61,14 @@ let make = () => {
   React.useEffect(() => {
     let getData = async () => {
       try {
-        let json = await fetchCrypto(~ids=["90", "80", "257"])
+        let json = await fetchCrypto(~ids=[ "90", "80", "257","2710","46971","47311","15"]) /* Bitcoin, Ethereum, Cardano */
         let dataArrayOpt = json->Js.Json.decodeArray
         
         switch dataArrayOpt {
         | Some(dataArray) =>
           let cryptoList: array<crypto> = 
             dataArray
+            ->Array.slice(~start=0, ~end=10) /* Prendre les 10 premières cryptos */
             ->Array.filterMap(item => {
               let objOpt = item->Js.Json.decodeObject
               switch objOpt {
@@ -61,11 +78,18 @@ let make = () => {
                 let symbol = obj->Js.Dict.get("symbol")->Belt.Option.flatMap(Js.Json.decodeString)->Belt.Option.getWithDefault("")
                 let price = obj->Js.Dict.get("price_usd")->Belt.Option.flatMap(Js.Json.decodeString)->Belt.Option.flatMap(Float.fromString)->Belt.Option.getWithDefault(0.0)
                 
+                let image = switch id {
+                | "90" => bitcoinImg
+                | "80" => ethereumImg
+                | "257" => cardanoImg
+                | _ => bitcoinImg
+                }
+                
                 Some({
                   id,
                   name,
                   symbol,
-                  image: bitcoinImg,
+                  image,
                   price,
                 })
               | None => None

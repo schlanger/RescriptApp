@@ -10,7 +10,9 @@ module Dashboard = Dashboard
 let make = () => {
   let (count, setCount) = React.useState(() => 0)
 
-  <div className="max-w-200">
+  <div className="max-w-300 mx-auto mt-12">
+  <div className="flex justify-evenly items-center">
+    /*
     <div className="flex justify-evenly items-center">
       <img src={vite} alt={"Vite logo"} className="h-24" />
       <img src={rescript} alt={"ReScript logo"} className="h-24" />
@@ -31,9 +33,9 @@ let make = () => {
         {React.string("ReScript")}
         {React.string(".")}
       </a>
-    </p>
+    </p> */
 
     <Dashboard />
-
   </div>
+</div>
 }

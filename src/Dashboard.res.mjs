@@ -8,8 +8,14 @@ import * as Stdlib_Array from "@rescript/runtime/lib/es6/Stdlib_Array.js";
 import * as Stdlib_Float from "@rescript/runtime/lib/es6/Stdlib_Float.js";
 import * as JsxRuntime from "react/jsx-runtime";
 import BitcoinPng from "./assets/image/bitcoin.png";
+import CardanoPng from "./assets/image/cardano.png";
+import EthereumPng from "./assets/image/ethereum.png";
 
 let bitcoinImg = BitcoinPng;
+
+let cardanoImg = CardanoPng;
+
+let ethereumImg = EthereumPng;
 
 async function fetchCrypto(ids) {
   let url = "https://api.coinlore.net/api/ticker/?id=" + ids.map(prim => prim.trim()).join(",");
@@ -18,6 +24,15 @@ async function fetchCrypto(ids) {
   console.log(JSON.stringify(result));
   return result;
 }
+
+async function fetchallCrypto() {
+  let res = await fetch("https://api.coinlore.net/api/tickers/", {});
+  let result = await res.json();
+  console.log(JSON.stringify(result));
+  return result;
+}
+
+fetchallCrypto();
 
 function Dashboard(props) {
   let match = React.useState(() => []);
@@ -30,11 +45,15 @@ function Dashboard(props) {
         let json = await fetchCrypto([
           "90",
           "80",
-          "257"
+          "257",
+          "2710",
+          "46971",
+          "47311",
+          "15"
         ]);
         let dataArrayOpt = Js_json.decodeArray(json);
         if (dataArrayOpt !== undefined) {
-          let cryptoList = Stdlib_Array.filterMap(dataArrayOpt, item => {
+          let cryptoList = Stdlib_Array.filterMap(dataArrayOpt.slice(0, 10), item => {
             let objOpt = Js_json.decodeObject(item);
             if (objOpt === undefined) {
               return;
@@ -43,11 +62,22 @@ function Dashboard(props) {
             let name = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(objOpt, "name"), Js_json.decodeString), "");
             let symbol = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(objOpt, "symbol"), Js_json.decodeString), "");
             let price = Belt_Option.getWithDefault(Belt_Option.flatMap(Belt_Option.flatMap(Js_dict.get(objOpt, "price_usd"), Js_json.decodeString), Stdlib_Float.fromString), 0.0);
+            let image;
+            switch (id) {
+              case "257" :
+                image = cardanoImg;
+                break;
+              case "80" :
+                image = ethereumImg;
+                break;
+              default:
+                image = bitcoinImg;
+            }
             return {
               id: id,
               name: name,
               symbol: symbol,
-              image: bitcoinImg,
+              image: image,
               price: price
             };
           });
@@ -119,7 +149,10 @@ let make = Dashboard;
 
 export {
   bitcoinImg,
+  cardanoImg,
+  ethereumImg,
   fetchCrypto,
+  fetchallCrypto,
   make,
 }
 /* bitcoinImg Not a pure module */
