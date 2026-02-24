@@ -1,12 +1,6 @@
 
-@module("./assets/image/bitcoin.png")
-external bitcoinImg: string = "default"
-
-@module("./assets/image/cardano.png")
-external cardanoImg: string = "default"
-
-@module("./assets/image/ethereum.png")
-external ethereumImg: string = "default"
+@module("./assets/image/steth.png")
+external stethImg: string = "default"
 
 
 /* =========================
@@ -17,6 +11,7 @@ type crypto = {
   name: string,    /* nom lisible */
   symbol: string,  /* symbole (BTC, ETH…) */
   image: string,   /* URL de l'icône */
+  image2: string,  /* URL de l'icône (fallback pour steth) */
   price: float,    /* prix en USD */
 }
 
@@ -28,7 +23,6 @@ let fetchCrypto = async (~ids: array<string>) => {
     "https://api.coinlore.net/api/ticker/?id=" ++ ids->Array.map(String.trim)->Array.joinWith(",")
   let res = await Fetch.fetch(url, {})
   let result = await Fetch.Response.json(res)
-  Js.Json.stringifyAny(result)->Js.log
   result
 }
 
@@ -36,7 +30,6 @@ let fetchallCrypto = async () => {
   let url = "https://api.coinlore.net/api/tickers/"
   let res = await Fetch.fetch(url, {})
   let result = await Fetch.Response.json(res)
-  Js.Json.stringifyAny(result)->Js.log
   result
 }
 
@@ -61,28 +54,34 @@ let make = () => {
   React.useEffect(() => {
     let getData = async () => {
       try {
-        let json = await fetchCrypto(~ids=[ "90", "80", "257","2710","46971","47311","15"]) /* Bitcoin, Ethereum, Cardano */
-        let dataArrayOpt = json->Js.Json.decodeArray
+        let json = await fetchallCrypto()/* Récupère tous les cryptos */
+        let objOpt = json->Js.Json.decodeObject
         
-        switch dataArrayOpt {
-        | Some(dataArray) =>
-          let cryptoList: array<crypto> = 
-            dataArray
-            ->Array.slice(~start=0, ~end=10) /* Prendre les 10 premières cryptos */
-            ->Array.filterMap(item => {
+        switch objOpt {
+        | Some(obj) =>
+          let dataArrayOpt = obj->Js.Dict.get("data")->Belt.Option.flatMap(Js.Json.decodeArray)
+          
+          switch dataArrayOpt {
+          | Some(dataArray) =>
+            let cryptoList: array<crypto> = 
+              dataArray
+              ->Array.slice(~start=0, ~end=10) /* Prendre les 10 premières cryptos */
+              ->Array.filterMap(item => {
               let objOpt = item->Js.Json.decodeObject
               switch objOpt {
               | Some(obj) =>
                 let id = obj->Js.Dict.get("id")->Belt.Option.flatMap(Js.Json.decodeString)->Belt.Option.getWithDefault("")
                 let name = obj->Js.Dict.get("name")->Belt.Option.flatMap(Js.Json.decodeString)->Belt.Option.getWithDefault("")
-                let symbol = obj->Js.Dict.get("symbol")->Belt.Option.flatMap(Js.Json.decodeString)->Belt.Option.getWithDefault("")
+                let symbol = obj->Js.Dict.get("symbol")->Belt.Option.flatMap(Js.Json.decodeString)->Belt.Option.getWithDefault("")->String.toLowerCase
                 let price = obj->Js.Dict.get("price_usd")->Belt.Option.flatMap(Js.Json.decodeString)->Belt.Option.flatMap(Float.fromString)->Belt.Option.getWithDefault(0.0)
                 
-                let image = switch id {
-                | "90" => bitcoinImg
-                | "80" => ethereumImg
-                | "257" => cardanoImg
-                | _ => bitcoinImg
+                /* Logo dynamique depuis CDN - aucun fichier à télécharger */
+                let image = "https://cdn.jsdelivr.net/npm/cryptocurrency-icons/32/color/" ++ symbol ++ ".png"
+
+                let image2 = if symbol === "steth" {
+                  stethImg
+                } else {
+                  image
                 }
                 
                 Some({
@@ -90,6 +89,7 @@ let make = () => {
                   name,
                   symbol,
                   image,
+                  image2,
                   price,
                 })
               | None => None
@@ -98,8 +98,14 @@ let make = () => {
 
           setCryptos(_ => cryptoList)
           setLoading(_ => false)
+     
         | None =>
-          Js.log("Erreur: pas un array")
+          Js.log("Erreur: pas un array dans 'data'")
+          setLoading(_ => false)
+        }
+        
+        | None =>
+          Js.log("Erreur: pas un objet JSON")
           setLoading(_ => false)
         }
       } catch {
@@ -135,7 +141,7 @@ let make = () => {
             >
               <div className="flex items-center gap-4 mb-4">
                 <img
-                  src={c.image}
+                  src={c.image2}
                   alt={c.name}
                   className="w-12 h-12"
                 />

@@ -7,29 +7,19 @@ import * as Belt_Option from "@rescript/runtime/lib/es6/Belt_Option.js";
 import * as Stdlib_Array from "@rescript/runtime/lib/es6/Stdlib_Array.js";
 import * as Stdlib_Float from "@rescript/runtime/lib/es6/Stdlib_Float.js";
 import * as JsxRuntime from "react/jsx-runtime";
-import BitcoinPng from "./assets/image/bitcoin.png";
-import CardanoPng from "./assets/image/cardano.png";
-import EthereumPng from "./assets/image/ethereum.png";
+import StethPng from "./assets/image/steth.png";
 
-let bitcoinImg = BitcoinPng;
-
-let cardanoImg = CardanoPng;
-
-let ethereumImg = EthereumPng;
+let stethImg = StethPng;
 
 async function fetchCrypto(ids) {
   let url = "https://api.coinlore.net/api/ticker/?id=" + ids.map(prim => prim.trim()).join(",");
   let res = await fetch(url, {});
-  let result = await res.json();
-  console.log(JSON.stringify(result));
-  return result;
+  return await res.json();
 }
 
 async function fetchallCrypto() {
   let res = await fetch("https://api.coinlore.net/api/tickers/", {});
-  let result = await res.json();
-  console.log(JSON.stringify(result));
-  return result;
+  return await res.json();
 }
 
 fetchallCrypto();
@@ -42,49 +32,38 @@ function Dashboard(props) {
   React.useEffect(() => {
     let getData = async () => {
       try {
-        let json = await fetchCrypto([
-          "90",
-          "80",
-          "257",
-          "2710",
-          "46971",
-          "47311",
-          "15"
-        ]);
-        let dataArrayOpt = Js_json.decodeArray(json);
-        if (dataArrayOpt !== undefined) {
-          let cryptoList = Stdlib_Array.filterMap(dataArrayOpt.slice(0, 10), item => {
-            let objOpt = Js_json.decodeObject(item);
-            if (objOpt === undefined) {
-              return;
-            }
-            let id = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(objOpt, "id"), Js_json.decodeString), "");
-            let name = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(objOpt, "name"), Js_json.decodeString), "");
-            let symbol = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(objOpt, "symbol"), Js_json.decodeString), "");
-            let price = Belt_Option.getWithDefault(Belt_Option.flatMap(Belt_Option.flatMap(Js_dict.get(objOpt, "price_usd"), Js_json.decodeString), Stdlib_Float.fromString), 0.0);
-            let image;
-            switch (id) {
-              case "257" :
-                image = cardanoImg;
-                break;
-              case "80" :
-                image = ethereumImg;
-                break;
-              default:
-                image = bitcoinImg;
-            }
-            return {
-              id: id,
-              name: name,
-              symbol: symbol,
-              image: image,
-              price: price
-            };
-          });
-          setCryptos(param => cryptoList);
+        let json = await fetchallCrypto();
+        let objOpt = Js_json.decodeObject(json);
+        if (objOpt !== undefined) {
+          let dataArrayOpt = Belt_Option.flatMap(Js_dict.get(objOpt, "data"), Js_json.decodeArray);
+          if (dataArrayOpt !== undefined) {
+            let cryptoList = Stdlib_Array.filterMap(dataArrayOpt.slice(0, 10), item => {
+              let objOpt = Js_json.decodeObject(item);
+              if (objOpt === undefined) {
+                return;
+              }
+              let id = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(objOpt, "id"), Js_json.decodeString), "");
+              let name = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(objOpt, "name"), Js_json.decodeString), "");
+              let symbol = Belt_Option.getWithDefault(Belt_Option.flatMap(Js_dict.get(objOpt, "symbol"), Js_json.decodeString), "").toLowerCase();
+              let price = Belt_Option.getWithDefault(Belt_Option.flatMap(Belt_Option.flatMap(Js_dict.get(objOpt, "price_usd"), Js_json.decodeString), Stdlib_Float.fromString), 0.0);
+              let image = "https://cdn.jsdelivr.net/npm/cryptocurrency-icons/32/color/" + symbol + ".png";
+              let image2 = symbol === "steth" ? stethImg : image;
+              return {
+                id: id,
+                name: name,
+                symbol: symbol,
+                image: image,
+                image2: image2,
+                price: price
+              };
+            });
+            setCryptos(param => cryptoList);
+            return setLoading(param => false);
+          }
+          console.log("Erreur: pas un array dans 'data'");
           return setLoading(param => false);
         }
-        console.log("Erreur: pas un array");
+        console.log("Erreur: pas un objet JSON");
         return setLoading(param => false);
       } catch (exn) {
         console.log("Erreur try/catch");
@@ -110,7 +89,7 @@ function Dashboard(props) {
                   JsxRuntime.jsx("img", {
                     className: "w-12 h-12",
                     alt: c.name,
-                    src: c.image
+                    src: c.image2
                   }),
                   JsxRuntime.jsxs("div", {
                     children: [
@@ -148,11 +127,9 @@ function Dashboard(props) {
 let make = Dashboard;
 
 export {
-  bitcoinImg,
-  cardanoImg,
-  ethereumImg,
+  stethImg,
   fetchCrypto,
   fetchallCrypto,
   make,
 }
-/* bitcoinImg Not a pure module */
+/* stethImg Not a pure module */
