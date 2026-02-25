@@ -35,8 +35,6 @@ let fetchallCrypto = async () => {
 
 fetchallCrypto()->ignore
 
-open React
-
 /* =========================
    Composant principal
    ========================= */
@@ -65,7 +63,7 @@ let make = () => {
           | Some(dataArray) =>
             let cryptoList: array<crypto> = 
               dataArray
-              ->Array.slice(~start=0, ~end=10) /* Prendre les 10 premières cryptos */
+              ->Array.slice(~start=0, ~end=12) /* Prendre les 10 premières cryptos */
               ->Array.filterMap(item => {
               let objOpt = item->Js.Json.decodeObject
               switch objOpt {
@@ -122,7 +120,7 @@ let make = () => {
   /* =========================
      Rendu JSX
      ========================= */
-  <div className="p-6 bg-slate-900 min-h-screen">
+  <div className="p-6 bg-slate-900 min-h-screen rounded-lg mt-20">
     <h1 className="text-4xl font-bold text-white mb-8">
       {React.string("💰 Crypto Dashboard")}
     </h1>
