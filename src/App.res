@@ -37,6 +37,5 @@ let make = () => {
 
     <Dashboard />
   </div>
-  <Chart data={[]} />
 </div>
 }
