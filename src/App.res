@@ -10,7 +10,7 @@ module Dashboard = Dashboard
 let make = () => {
   let (count, setCount) = React.useState(() => 0)
 
-  <div className="max-w-300 mx-auto mt-12">
+  <div className="max-w-300 mx-auto">
   <div className="flex justify-evenly items-center">
     /*
     <div className="flex justify-evenly items-center">
